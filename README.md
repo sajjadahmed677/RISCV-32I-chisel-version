@@ -1,4 +1,4 @@
 # RISCV-32I-chisel-version
 # by SAJJAD AHMED
-this repository contains the 5 stage pipelined data path of RV32I with forwarding unit for solving data hazards.
-control and structural hazards will be solved soon.
+this repository contains the 5 stage pipelined data path of RV32I with forwarding unit for solving data hazards,
+a unit named branches that contain all conditional branch logic and forwarding unit for branch calculations. structural hazars will be solved soon.
