@@ -14,29 +14,50 @@ class Forward extends Module {
     val out1     = Output(UInt(2.W))
     val out2     = Output(UInt(2.W))
   })
+
+
+    io.out1 := 0.U
+    io.out2 := 0.U
    //execution hazard and MEM hazard
-   when((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs1))  
+   when((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs1)&&(io.EMrd === io.IDrs2))
+   {
+     io.out1 := "b10".U
+     io.out2 := "b10".U
+   }
+   .elsewhen((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs1))  
    {
    io.out1 := "b10".U
    }
-    .elsewhen((io.MBregW === 1.U) && (io.MBrd=/= 0.U) && (io.MBrd=== io.IDrs1)) 
-   {
-   io.out1 := "b01".U
-   }
-   .otherwise 
-   {
-      io.out1 := "b00".U
-   }
-   when((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs2))  
+  .elsewhen((io.EMregW === 1.U) && (io.EMrd=/= 0.U) && (io.EMrd=== io.IDrs2)) 
    {
    io.out2 := "b10".U
    }
-   .elsewhen((io.MBregW === 1.U) && (io.MBrd=/= 0.U) && (io.MBrd=== io.IDrs2)) 
+   
+
+   when((io.MBregW === 1.U) && (io.MBrd =/= 0.U) && (io.MBrd === io.IDrs2)&& (io.MBrd === io.IDrs1) && ~((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs1)&&(io.EMrd === io.IDrs2)))
+   {
+    io.out1 := "b01".U
+    io.out2 := "b01".U
+   }
+   .elsewhen((io.MBregW === 1.U) && (io.MBrd=/= 0.U) && (io.MBrd=== io.IDrs1) && ~((io.EMregW === 1.U) && (io.EMrd =/= 0.U) && (io.EMrd === io.IDrs1))) 
+   {
+   io.out1 := "b01".U
+   }
+   .elsewhen((io.MBregW === 1.U) && (io.MBrd=/= 0.U) && (io.MBrd=== io.IDrs2) && ~((io.EMregW === 1.U) && (io.EMrd=/= 0.U) && (io.EMrd=== io.IDrs2))) 
    {
    io.out2 := "b01".U
    }
-  .otherwise
-  {
-       io.out2 := "b00".U
-  }
+  
 }
+
+
+
+
+// .elsewhen((io.MBregW === 1.U) && (io.MBrd=/= 0.U) && (io.MBrd=== io.IDrs1)) 
+//   {
+//   io.out1 := "b01".U
+//   }
+//   .otherwise 
+//   {
+//      io.out1 := "b00".U
+//   }
