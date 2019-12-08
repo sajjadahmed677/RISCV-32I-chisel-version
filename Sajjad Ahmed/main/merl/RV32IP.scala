@@ -7,6 +7,7 @@ class RV32IP extends Module
 {
     val io=IO(new Bundle{
         val out = Output(UInt(32.W))
+        val in  = Input(Clock())
     })
 // calling all Modules to be connected
 
@@ -25,7 +26,8 @@ class RV32IP extends Module
     val forwardbr = Module(new BranchForward()) 
     val Mux2    = Module(new Mux())
     val Mux4    = Module(new Mux4())
-
+    val RegForward = Module(new StructuralHazard())
+Regfile.io.clock <> io.in
 // pipeline Registers
     // here p at the end of variable name is for indicating pipeline module
     val fetchp     = Module(new FetchReg())
@@ -43,7 +45,7 @@ class RV32IP extends Module
 
 // condition for next pc value on the basis of branching
     when(Control.io.NextPc_sel === "b00".U || Control.io.NextPc_sel === "b01".U || Control.io.NextPc_sel === "b11".U)
-    {
+    {// this when condition is for stalling the pipline one cycle for jal instruction.
     when((Control.io.Branch & branch.io.out) === 0.U)
     {
         when(stall.io.out2 ==="b0".U)
@@ -145,7 +147,33 @@ class RV32IP extends Module
     Regfile.io.read_sel2 := Control.io.Readreg_2
 
 // jump and link register connections
-    jump.io.a := Regfile.io.read_data1
+
+// JALR block with forwarding 
+
+
+    when(forwardbr.io.Out1 === "b0110".U)
+    {
+        jump.io.a := Execute.io.out
+    }
+    .elsewhen(forwardbr.io.Out1 === "b0111".U)
+    {
+        jump.io.a := executep.io.eout5
+    }
+    .elsewhen(forwardbr.io.Out1 === "b1000".U || forwardbr.io.Out1 === "b1010".U)
+    {
+        jump.io.a := Dmem.io.rdData
+    }
+    .elsewhen(forwardbr.io.Out1 === "b1001".U)
+    {
+        jump.io.a := Regfile.io.write_data
+    }
+    .otherwise
+    {
+        jump.io.a := Regfile.io.read_data1
+    }
+
+
+ //   jump.io.a := Regfile.io.read_data1
     jump.io.b := Control.io.SUI
 
 // forwarding unit for branches 
@@ -235,8 +263,25 @@ class RV32IP extends Module
 
         decodep.io.din8 := fetchp.io.fout2
         decodep.io.din9 := fetchp.io.fout1
-        decodep.io.din10:= Regfile.io.read_data1
-        decodep.io.din11:= Regfile.io.read_data2
+
+// forwarding logic for structural hazards 
+        when(RegForward.io.out1 === 1.U)
+        {
+            decodep.io.din10 := Regfile.io.write_data
+        }
+        .otherwise
+        {
+            decodep.io.din10:= Regfile.io.read_data1
+        }
+
+        when(RegForward.io.out2 === 1.U)
+        {
+            decodep.io.din11 := Regfile.io.write_data
+        }
+        .otherwise
+        {
+            decodep.io.din11:= Regfile.io.read_data2
+        }
         decodep.io.din12:= Control.io.SUI
         decodep.io.din13:= Control.io.WriteReg
         decodep.io.din14:= fetchp.io.fout3(14,12)
@@ -244,7 +289,12 @@ class RV32IP extends Module
         decodep.io.din16:= Control.io.Readreg_1
         decodep.io.din17:= Control.io.Readreg_2
 
+// connections of StructuralHazard unit 
 
+    RegForward.io.RegWrite := Control.io.Regwrite
+    RegForward.io.WBrd     := writebackp.io.wout5
+    RegForward.io.IDrs1    := Control.io.Readreg_1
+    RegForward.io.IDrs2    := Control.io.Readreg_2
 
 
 
